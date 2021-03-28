@@ -1,0 +1,37 @@
+version: "3.5"
+
+services:
+  dev:
+    image: disposable/pam_doublecheck_dev
+    build:
+      context: ../
+      dockerfile: .devcontainer/Dockerfile.dev
+
+    volumes:
+      - ..:/app/:cached
+      - shared:/exports/
+
+  target:
+    image: disposable/pam_doublecheck_target
+    build:
+      context: ../
+      dockerfile: .devcontainer/Dockerfile.target
+
+    depends_on:
+      - dev
+
+    environment:
+      - USER_NAME=vscode
+      - PASSWORD_ACCESS=true
+      - USER_PASSWORD=password
+      - SUDO_ACCESS=true
+
+
+    volumes:
+      - shared:/exports/
+
+    # ports:
+    #   -2222:2222
+
+volumes:
+  shared:
