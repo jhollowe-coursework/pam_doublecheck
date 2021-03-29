@@ -17,12 +17,15 @@
 	if (retval != PAM_SUCCESS)   \
 	return retval
 
-#define DC_PREFIX        "[Doublecheck] "
-#define DC_REASON_PROMPT DC_PREFIX "Reason: "
+#define DC_PREFIX                 "[Doublecheck] "
+#define DC_REASON_PROMPT          DC_PREFIX "Reason: "
+#define DC_VERIFIER_GROUP_DEFAULT "sudo"
 
-#define SMS_RESPONSE_TIMEOUT 120
+#define SMS_RESPONSE_TIMEOUT_DEFAULT 120
 
 static int converse(pam_handle_t *pamh, int nargs, PAM_CONST struct pam_message **message,
                     struct pam_response **response);
 
 static int converseSingle(pam_handle_t *pamh, PAM_CONST struct pam_message *message, struct pam_response **response);
+
+static int parseArgs(pam_handle_t *pamh, int argc, const char **argv);
