@@ -1,5 +1,16 @@
+FROM linuxserver/openssh-server:latest as builder
+
+RUN apk add --no-cache build-base git linux-pam-dev
+
+RUN git clone https://github.com/pbrezina/pam-test.git pam-test \
+    && cd pam-test && make
+
+
+##########################################################
+
 FROM linuxserver/openssh-server:latest
 
-COPY ./target_pam_setup.sh .
+COPY --from=builder /pam-test/pam_test /bin/
 
-CMD ["bash", "-c", "sudo ./target_pam_setup.sh && while sleep 1000; do :; done"]
+COPY ./target_pam_setup.sh .
+RUN sudo ./target_pam_setup.sh

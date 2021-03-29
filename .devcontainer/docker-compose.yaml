@@ -26,7 +26,6 @@ services:
       - USER_PASSWORD=password
       - SUDO_ACCESS=true
 
-
     volumes:
       - shared:/exports/
 
