@@ -28,6 +28,25 @@ PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc, const c
 		reason = resp->resp;
 	}
 
+	int   numSudoers          = 0;
+	char *sudoerUsernames[]   = NULL;
+	char *sudoerPhoneNumber[] = NULL;
+
+	struct passwd *pw       = NULL;
+	char *         phoneNum = NULL;
+
+	// search through all the users, filter if they are in the sudo group, and get phone number from GECOS
+	while ((pw = getpwent()) != NULL) {
+		// TODO check if user is in sudo group
+		sscanf(pw->pw_gecos, "%s", phoneNum); // TODO parse phone number from GECOS
+	}
+	// close the passwd database
+	endpwent();
+
+	// verify with each
+	for (int i = 0; i < numSudoers; i++) {
+	}
+
 	printf("DEBUG: user:%s|reason:\"%s\"\n", pUsername, reason);
 	return PAM_SUCCESS;
 }
