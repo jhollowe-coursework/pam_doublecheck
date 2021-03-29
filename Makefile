@@ -8,7 +8,7 @@ link: compile
 	ld -x --shared -o $(BIN).so $(BIN).o
 
 exports: compile
-	ld -x --shared -o $(EXPORT_PATH)/$(BIN).so $(BIN).o
+	sudo ld -x --shared -o $(EXPORT_PATH)/$(BIN).so $(BIN).o
 
 compile:
 	gcc -fPIC -fno-stack-protector -o $(BIN).o -c $(SOURCES)
