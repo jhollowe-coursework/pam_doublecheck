@@ -13,7 +13,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
 FROM base as builder
 
 RUN git clone https://github.com/pbrezina/pam-test.git pam-test \
-    && cd pam-test && make
+    && cd pam-test && sed -i 's/gcc/gcc -g/g' Makefile && make
 
 #######################################################################
 

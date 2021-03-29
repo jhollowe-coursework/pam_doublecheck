@@ -11,7 +11,7 @@ exports: compile
 	sudo ld -x --shared -o $(EXPORT_PATH)/$(BIN).so $(BIN).o
 
 compile:
-	gcc -fPIC -fno-stack-protector -o $(BIN).o -c $(SOURCES)
+	gcc -g -fPIC -fno-stack-protector -o $(BIN).o -c $(SOURCES)
 
 test: exports
 	pam_test auth vscode
