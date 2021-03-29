@@ -2,11 +2,6 @@
 // https://github.com/microsoft/vscode-dev-containers/tree/v0.163.1/containers/cpp
 {
 	"name": "Doublecheck PAM module",
-	// "build": {
-	// 	"dockerfile": "Dockerfile.dev",
-	// 	// Update 'VARIANT' to pick an Debian / Ubuntu OS version: debian-10, debian-9, ubuntu-20.04, ubuntu-18.04
-	// 	"args": { "VARIANT": "ubuntu-20.04" }
-	// },
 
 	"dockerComposeFile": "./docker-compose.yaml",
 	"service": "dev",
@@ -22,7 +17,8 @@
 	// Add the IDs of extensions you want installed when the container is created.
 	"extensions": [
 		"ms-vscode.cpptools",
-		"streetsidesoftware.code-spell-checker"
+		"streetsidesoftware.code-spell-checker",
+		"mhutchie.git-graph"
 	],
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.

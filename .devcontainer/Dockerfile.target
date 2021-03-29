@@ -1,2 +1,5 @@
 FROM linuxserver/openssh-server:latest
 
+COPY ./target_pam_setup.sh .
+
+CMD ["bash", "-c", "sudo ./target_pam_setup.sh && while sleep 1000; do :; done"]

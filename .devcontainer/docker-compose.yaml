@@ -14,8 +14,8 @@ services:
   target:
     image: disposable/pam_doublecheck_target
     build:
-      context: ../
-      dockerfile: .devcontainer/Dockerfile.target
+      context: ./
+      dockerfile: Dockerfile.target
 
     depends_on:
       - dev

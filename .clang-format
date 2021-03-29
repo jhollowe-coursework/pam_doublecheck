@@ -1,0 +1,17 @@
+BasedOnStyle: LLVM
+IndentWidth: 2
+ColumnLimit: 100
+
+AlignAfterOpenBracket: Align
+# AlignConsecutiveAssignments: AcrossEmptyLines
+AlignConsecutiveAssignments: true
+AlignConsecutiveBitFields: true
+AlignConsecutiveDeclarations: true
+AlignConsecutiveMacros: true
+AlignEscapedNewlines: true
+AlignTrailingComments: true
+AllowAllArgumentsOnNextLine: false
+
+TabWidth: 2
+UseCRLF: false
+UseTab: AlignWithSpaces
