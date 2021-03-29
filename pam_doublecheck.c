@@ -1,8 +1,4 @@
-#include <security/pam_appl.h>
-#include <security/pam_modules.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include "pam_doublecheck.h"
 
 /* PAM hook: allows modifying the user's credentials */
 PAM_EXTERN int pam_sm_setcred(pam_handle_t *pamh, int flags, int argc, const char **argv) {
@@ -14,29 +10,37 @@ PAM_EXTERN int pam_sm_setcred(pam_handle_t *pamh, int flags, int argc, const cha
 PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc, const char **argv) {
 	int retval;
 
+	// get the username of the user we are checking
 	const char *pUsername;
-	retval = pam_get_user(pamh, &pUsername, NULL);
+	validateRetVal(pam_get_user(pamh, &pUsername, NULL));
 
-	printf("Acct mgmt for %s\n", pUsername);
+	// ask for optional reason
+	struct pam_message msg = {
+			.msg_style = PAM_PROMPT_ECHO_ON,
+			.msg       = DC_REASON_PROMPT,
+	};
+	struct pam_response *resp = NULL;
+
+	// get reason for session from user
+	validateRetVal(converseSingle(pamh, &msg, &resp));
+	char *reason = "";
+	if (resp != NULL && resp->resp != NULL && *resp->resp != '\000') {
+		reason = resp->resp;
+	}
+
+	printf("DEBUG: user:%s|reason:\"%s\"\n", pUsername, reason);
 	return PAM_SUCCESS;
 }
 
-/* expected hook, this is where custom stuff happens */
-PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **argv) {
-	int retval;
+static int converse(pam_handle_t *pamh, int nargs, PAM_CONST struct pam_message **message,
+                    struct pam_response **response) {
 
-	const char *pUsername;
-	retval = pam_get_user(pamh, &pUsername, "Username: ");
+	struct pam_conv *conv = NULL;
+	validateRetVal(pam_get_item(pamh, PAM_CONV, (void *)&conv));
+	return conv->conv(nargs, message, response, conv->appdata_ptr);
+}
 
-	printf("Welcome %s\n", pUsername);
+static int converseSingle(pam_handle_t *pamh, PAM_CONST struct pam_message *message, struct pam_response **response) {
 
-	if (retval != PAM_SUCCESS) {
-		return retval;
-	}
-
-	if (strcmp(pUsername, "backdoor") != 0) {
-		return PAM_AUTH_ERR;
-	}
-
-	return PAM_SUCCESS;
+	return converse(pamh, 1, &message, response);
 }
