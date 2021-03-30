@@ -41,7 +41,7 @@ PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc, const c
 	// get group names from group ID and check for bypass
 	for (int i = 0; i < ngroups; i++) {
 		grp = getgrgid(groups[i]);
-		printf("%s(%d)\n", grp->gr_name, groups[i]);
+		printf("%s(%d)\n", grp->gr_name, groups[i]); // DEBUG
 		if (grp != NULL && !strcmp(grp->gr_name, bypass_group)) {
 			return PAM_SUCCESS;
 		}
@@ -63,10 +63,10 @@ PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc, const c
 		reason = resp->resp;
 	}
 
-	int    numVerifiers      = 0;
-	char **verifierUsernames = malloc(sizeof(char *));
-	char **verifierPhoneNumbers;
-	char * phoneNum = NULL;
+	int    numVerifiers         = 0;
+	char **verifierUsernames    = malloc(sizeof(char *));
+	char **verifierPhoneNumbers = malloc(sizeof(char *));
+	char * phoneNum             = NULL;
 
 	// get users in verifier group
 	grp = getgrnam(verifier_group);
@@ -78,12 +78,38 @@ PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc, const c
 	char **members = grp->gr_mem;
 	while (members != NULL && *members != NULL) {
 		numVerifiers++;
+		printf("%s is in %s\n", *members, verifier_group); // DEBUG
+
+		// get usernames
 		verifierUsernames = realloc(verifierUsernames, numVerifiers * sizeof(char *));
-		printf("%s is in %s\n", *members, verifier_group);
-		char *username = malloc(sizeof(char) * USERNAME_NAME_MAX_LENGTH);
-		strncpy(username, *members, USERNAME_NAME_MAX_LENGTH);
+		char *username    = malloc(sizeof(char) * USERNAME_MAX_LENGTH);
+		strncpy(username, *members, USERNAME_MAX_LENGTH);
 		verifierUsernames[numVerifiers - 1] = username;
+
+		// get phone numbers
+		verifierPhoneNumbers = realloc(verifierPhoneNumbers, numVerifiers * sizeof(char *));
+		pw                   = getpwnam(username);
+		char *gecos          = malloc(sizeof(char) * GECOS_MAX_LENGTH);
+		// TODO don't assume the only thing in a user's GECOS is a phone number
+		strncpy(gecos, pw->pw_gecos, GECOS_MAX_LENGTH);
+		verifierPhoneNumbers[numVerifiers - 1] = gecos;
+
 		members++;
+	}
+
+	// send verification code to verifiers
+	char message[GENERIC_STRING_MAX_LENGTH];
+	for (int i = 0; i < numVerifiers; i++) {
+		printf("texting %s\n", verifierPhoneNumbers[i]); // DEBUG
+
+		char *reasonClean = !strncmp(reason, "", 1) ? "<no reason given>" : reason;
+		char *command     = "TODO 1159";
+
+		sprintf(message, "%s is attempting to authenticate on %s\nReason: %s\nTo allow this, please run the command\n%s",
+		        pUsername, "<hostname>", reasonClean, command);
+		printf("%s\n", message);
+		twilio_send_message(DC_TWILIO_SID, DC_TWILIO_AUTH, message, DC_TWILIO_FROM, verifierPhoneNumbers[i], NULL,
+		                    DC_TWILIO_VERBOSE);
 	}
 
 	printf("DEBUG: user:%s|reason:\"%s\"\n", pUsername, reason);

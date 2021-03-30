@@ -1,3 +1,4 @@
+#include "secrets.h"
 #include "twilio.h"
 #include <grp.h>
 #include <pwd.h>
@@ -19,10 +20,12 @@
 	if (retval != PAM_SUCCESS)   \
 	return retval
 
-#define DC_PREFIX                "[Doublecheck] "
-#define DC_REASON_PROMPT         DC_PREFIX "Reason: "
-#define DC_REGEX_SMS             "sms="
-#define USERNAME_NAME_MAX_LENGTH 32
+#define DC_PREFIX                 "[Doublecheck] "
+#define DC_REASON_PROMPT          DC_PREFIX "Reason: "
+#define DC_REGEX_SMS              "sms="
+#define USERNAME_MAX_LENGTH       32
+#define GECOS_MAX_LENGTH          256
+#define GENERIC_STRING_MAX_LENGTH 1000
 
 #define DC_VERIFIER_GROUP_DEFAULT    "sudo"
 #define DC_BYPASS_GROUP_DEFAULT      "sudo"
