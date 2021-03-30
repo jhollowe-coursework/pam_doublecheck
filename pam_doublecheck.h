@@ -1,5 +1,6 @@
 #include <grp.h>
 #include <pwd.h>
+#include <regex.h>
 #include <security/pam_appl.h>
 #include <security/pam_modules.h>
 #include <stdio.h>
@@ -17,10 +18,12 @@
 	if (retval != PAM_SUCCESS)   \
 	return retval
 
-#define DC_PREFIX                 "[Doublecheck] "
-#define DC_REASON_PROMPT          DC_PREFIX "Reason: "
-#define DC_VERIFIER_GROUP_DEFAULT "sudo"
+#define DC_PREFIX        "[Doublecheck] "
+#define DC_REASON_PROMPT DC_PREFIX "Reason: "
+#define DC_REGEX_SMS     "sms="
 
+#define DC_VERIFIER_GROUP_DEFAULT    "sudo"
+#define DC_BYPASS_GROUP_DEFAULT      "sudo"
 #define SMS_RESPONSE_TIMEOUT_DEFAULT 120
 
 static int converse(pam_handle_t *pamh, int nargs, PAM_CONST struct pam_message **message,

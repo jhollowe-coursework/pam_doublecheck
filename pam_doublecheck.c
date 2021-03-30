@@ -2,6 +2,7 @@
 
 // GLOBAL CONFIG
 char *verifier_group = DC_VERIFIER_GROUP_DEFAULT;
+char *bypass_group   = DC_BYPASS_GROUP_DEFAULT;
 int   sms_timeout    = SMS_RESPONSE_TIMEOUT_DEFAULT;
 
 /* PAM hook: allows modifying the user's credentials */
@@ -12,13 +13,39 @@ PAM_EXTERN int pam_sm_setcred(pam_handle_t *pamh, int flags, int argc, const cha
 
 /* PAM hook: determine if this account can be used at the moment. The main action of this module */
 PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc, const char **argv) {
-	int retval;
+	int            retval;
+	struct passwd *pw  = NULL;
+	struct group * grp = NULL;
 
 	parseArgs(pamh, argc, argv);
 
 	// get the username of the user we are checking
 	const char *pUsername;
 	validateRetVal(pam_get_user(pamh, &pUsername, NULL));
+
+	/* bypass this module if the user is in the bypass group */
+
+	int    ngroups = 1;
+	gid_t *groups  = malloc(ngroups * sizeof(gid_t *));
+	pw             = getpwnam(pUsername);
+	if (pw == NULL) {
+		fprintf(stderr, "Unable to find %s in user database\n", pUsername);
+		return PAM_USER_UNKNOWN;
+	}
+	// get the number of groups this user is into ngroups, resize groups, and get groups
+	getgrouplist(pUsername, pw->pw_gid, groups, &ngroups);
+	groups = realloc(groups, sizeof(*groups) * ngroups);
+	getgrouplist(pUsername, pw->pw_gid, groups, &ngroups);
+	// get group names from group ID and check for bypass
+	for (int i = 0; i < ngroups; i++) {
+		grp = getgrgid(groups[i]);
+		printf("%s(%d)\n", grp->gr_name, groups[i]);
+		if (grp != NULL && !strcmp(grp->gr_name, bypass_group)) {
+			return PAM_SUCCESS;
+		}
+	}
+
+	/* USER HAS NOT BYPASSED */
 
 	// ask for optional reason
 	struct pam_message msg = {
@@ -37,37 +64,37 @@ PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc, const c
 	int    numVerifiers = 0;
 	char **verifierUsernames;
 	char **verifierPhoneNumbers;
+	char * phoneNum = NULL;
 
-	struct passwd *pw       = NULL;
-	struct group * grp      = NULL;
-	char *         phoneNum = NULL;
-
-	// search through all the users, filter if they are in the verifier group, and get phone number from GECOS
-	while ((grp = getgrent()) != NULL) {
-		if (grp != NULL && grp->gr_name != NULL) {
+	// search through all the groups, filter if it is the verifier group, and get users in group
+	grp = getgrent();
+	while (grp != NULL) {
+		printf("\"%s\" vs \"%s\"\n", grp->gr_name, verifier_group);
+		if (grp->gr_name != NULL) {
 
 			// get users in verifier group
 			if (!strcmp(grp->gr_name, verifier_group)) {
 				verifierUsernames = grp->gr_mem;
 			}
-
-			// if there are no users to verify access, just exit
-			if (verifierUsernames == NULL) {
-				// TODO use some logging tools
-				printf("Unable to find users to verify access\n");
-				return PAM_AUTH_ERR;
-			}
-
-			for (int i = 0; verifierUsernames[i] != NULL; i++) {
-				numVerifiers++;
-				printf("%s\n", verifierUsernames[i]);
-			}
-
-			// TODO parse phone number from GECOS
 		}
+		grp = getgrent();
 	}
 	// close the group database
 	endgrent();
+
+	// if there are no users to verify access, just exit
+	if (verifierUsernames == NULL) {
+		// TODO use some logging tools
+		printf("Unable to find users to verify access\n");
+		return PAM_AUTH_ERR;
+	}
+
+	for (int i = 0; verifierUsernames[i] != NULL; i++) {
+		numVerifiers++;
+		printf("%s\n", verifierUsernames[i]);
+	}
+
+	// TODO parse phone number from GECOS
 
 	// verify with each user
 	for (int i = 0; i < numVerifiers; i++) {
@@ -95,7 +122,9 @@ static int parseArgs(pam_handle_t *pamh, int argc, const char **argv) {
 		if (!strncmp(argv[i], "verifier_group=", 15)) {
 			verifier_group = argv[i];
 		} else if (!strncmp(argv[i], "sms_timeout=", 13)) {
-			sms_timeout = argv[i];
+			sms_timeout = atoi(argv[i]);
+		} else if (!strncmp(argv[i], "bypass_group=", 14)) {
+			bypass_group = argv[i];
 		}
 	}
 	return 0;
