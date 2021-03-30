@@ -61,43 +61,27 @@ PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc, const c
 		reason = resp->resp;
 	}
 
-	int    numVerifiers = 0;
-	char **verifierUsernames;
+	int    numVerifiers      = 0;
+	char **verifierUsernames = malloc(sizeof(char *));
 	char **verifierPhoneNumbers;
 	char * phoneNum = NULL;
 
-	// search through all the groups, filter if it is the verifier group, and get users in group
-	grp = getgrent();
-	while (grp != NULL) {
-		printf("\"%s\" vs \"%s\"\n", grp->gr_name, verifier_group);
-		if (grp->gr_name != NULL) {
-
-			// get users in verifier group
-			if (!strcmp(grp->gr_name, verifier_group)) {
-				verifierUsernames = grp->gr_mem;
-			}
-		}
-		grp = getgrent();
-	}
-	// close the group database
-	endgrent();
-
-	// if there are no users to verify access, just exit
-	if (verifierUsernames == NULL) {
+	// get users in verifier group
+	grp = getgrnam(verifier_group);
+	if (grp == NULL) {
 		// TODO use some logging tools
-		printf("Unable to find users to verify access\n");
+		fprintf(stderr, "Unable to find users to verify access\n");
 		return PAM_AUTH_ERR;
 	}
-
-	for (int i = 0; verifierUsernames[i] != NULL; i++) {
+	char **members = grp->gr_mem;
+	while (members != NULL && *members != NULL) {
 		numVerifiers++;
-		printf("%s\n", verifierUsernames[i]);
-	}
-
-	// TODO parse phone number from GECOS
-
-	// verify with each user
-	for (int i = 0; i < numVerifiers; i++) {
+		verifierUsernames = realloc(verifierUsernames, numVerifiers * sizeof(char *));
+		printf("%s is in %s\n", *members, verifier_group);
+		char *username = malloc(sizeof(char) * USERNAME_NAME_MAX_LENGTH);
+		strncpy(username, *members, USERNAME_NAME_MAX_LENGTH);
+		verifierUsernames[numVerifiers - 1] = username;
+		members++;
 	}
 
 	printf("DEBUG: user:%s|reason:\"%s\"\n", pUsername, reason);

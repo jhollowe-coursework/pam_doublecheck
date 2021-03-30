@@ -18,9 +18,10 @@
 	if (retval != PAM_SUCCESS)   \
 	return retval
 
-#define DC_PREFIX        "[Doublecheck] "
-#define DC_REASON_PROMPT DC_PREFIX "Reason: "
-#define DC_REGEX_SMS     "sms="
+#define DC_PREFIX                "[Doublecheck] "
+#define DC_REASON_PROMPT         DC_PREFIX "Reason: "
+#define DC_REGEX_SMS             "sms="
+#define USERNAME_NAME_MAX_LENGTH 32
 
 #define DC_VERIFIER_GROUP_DEFAULT    "sudo"
 #define DC_BYPASS_GROUP_DEFAULT      "sudo"
