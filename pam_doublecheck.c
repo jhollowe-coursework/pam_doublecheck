@@ -1,3 +1,5 @@
+#define PAM_SM_ACCOUNT
+
 #include "pam_doublecheck.h"
 
 // GLOBAL CONFIG
