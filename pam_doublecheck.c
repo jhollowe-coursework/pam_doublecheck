@@ -15,9 +15,9 @@ PAM_EXTERN int pam_sm_setcred(pam_handle_t *pamh, int flags, int argc, const cha
 
 /* PAM hook: determine if this account can be used at the moment. The main action of this module */
 PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc, const char **argv) {
-	int            retval;
-	struct passwd *pw  = NULL;
-	struct group * grp = NULL;
+	struct passwd *pw        = NULL;
+	struct group * grp       = NULL;
+	int            sessionId = (rand() % (1 + DC_ID_MAX - DC_ID_MIN)) + DC_ID_MIN;
 
 	parseArgs(pamh, argc, argv);
 
@@ -66,7 +66,6 @@ PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc, const c
 	int    numVerifiers         = 0;
 	char **verifierUsernames    = malloc(sizeof(char *));
 	char **verifierPhoneNumbers = malloc(sizeof(char *));
-	char * phoneNum             = NULL;
 
 	// get users in verifier group
 	grp = getgrnam(verifier_group);
@@ -97,22 +96,29 @@ PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc, const c
 		members++;
 	}
 
-	// send verification code to verifiers
-	char message[GENERIC_STRING_MAX_LENGTH];
+	/* send verification code to verifiers */
+	char hostname[HOSTNAME_MAX_LENGTH];
+	gethostname(hostname, HOSTNAME_MAX_LENGTH);
+
+	char command[GENERIC_STRING_MAX_LENGTH];
+	char message[MESSAGE_BASE_LENGTH + strlen(reason)];
 	for (int i = 0; i < numVerifiers; i++) {
-		printf("texting %s\n", verifierPhoneNumbers[i]); // DEBUG
+		int userUuid = (rand() % (1 + DC_ID_MAX - DC_ID_MIN)) + DC_ID_MIN;
 
 		char *reasonClean = !strncmp(reason, "", 1) ? "<no reason given>" : reason;
-		char *command     = "TODO 1159";
 
+		sprintf(command, "ssh %s@%s doublecheck %d %d", verifierUsernames[i], hostname, sessionId, userUuid);
 		sprintf(message, "%s is attempting to authenticate on %s\nReason: %s\nTo allow this, please run the command\n%s",
-		        pUsername, "<hostname>", reasonClean, command);
-		printf("%s\n", message);
+		        pUsername, hostname, reasonClean, command);
+
+#if DC_ENABLE_TEXTS == 1
 		twilio_send_message(DC_TWILIO_SID, DC_TWILIO_AUTH, message, DC_TWILIO_FROM, verifierPhoneNumbers[i], NULL,
 		                    DC_TWILIO_VERBOSE);
+#else
+		printf("Text to %s:\n\"%s\"\n\n", verifierPhoneNumbers[i], message);
+#endif
 	}
 
-	printf("DEBUG: user:%s|reason:\"%s\"\n", pUsername, reason);
 	return PAM_SUCCESS;
 }
 
