@@ -24,7 +24,31 @@
 					"ignoreFailures": true
 				},
 				{
-					"text": "make exports"
+					"text": "make export_pam"
+				}
+			]
+		},
+		{
+			"name": "(gdb) Test bin",
+			"type": "cppdbg",
+			"request": "launch",
+			"program": "/bin/doublecheck",
+			"args": [
+				"123",
+				"456"
+			],
+			"stopAtEntry": false,
+			"cwd": "${workspaceFolder}/",
+			"externalConsole": false,
+			"MIMode": "gdb",
+			"setupCommands": [
+				{
+					"description": "Enable pretty-printing for gdb",
+					"text": "-enable-pretty-printing",
+					"ignoreFailures": true
+				},
+				{
+					"text": "make export_bin"
 				}
 			]
 		}
