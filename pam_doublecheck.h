@@ -52,7 +52,7 @@ static int parseArgs(pam_handle_t *pamh, int argc, const char **argv);
 /*
  * Takes the PAM flags int and only prints if the PAM_SILENT flag is not set
  */
-void p_printf(int flags, const char *restrict format, ...) {
+int p_printf(int flags, const char *restrict format, ...) {
 	if (!isSilent(flags)) {
 		va_list arg;
 		int     done;
@@ -61,12 +61,13 @@ void p_printf(int flags, const char *restrict format, ...) {
 		va_end(arg);
 		return done;
 	}
+	return 0;
 }
 
 /*
  * Takes the PAM flags int and only prints if the PAM_SILENT flag is not set
  */
-void p_fprintf(int flags, FILE *restrict stream, const char *restrict format, ...) {
+int p_fprintf(int flags, FILE *restrict stream, const char *restrict format, ...) {
 	if (!isSilent(flags)) {
 		va_list arg;
 		int     done;
@@ -75,4 +76,5 @@ void p_fprintf(int flags, FILE *restrict stream, const char *restrict format, ..
 		va_end(arg);
 		return done;
 	}
+	return 0;
 }
