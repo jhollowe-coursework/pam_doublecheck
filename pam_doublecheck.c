@@ -125,7 +125,19 @@ PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc, const c
 
 	/* wait for verification */
 
-	time_t startTime = time(NULL);
+	int  fd;
+	char filename[GENERIC_STRING_MAX_LENGTH];
+	sprintf(filename, "%s_%0*d", DC_COMMUNICATION_FILE_BASE, DC_ID_PAD_LENGTH, sessionId);
+
+	mkfifo(filename, 0666);
+
+	if ((fd = open(filename, O_RDONLY | O_NONBLOCK)) < 0) {
+		p_fprintf(flags, stderr, "Unable to access verifier log");
+		exit(1);
+	}
+
+	char   line[LINE_MAX_LENGTH] = "";
+	time_t startTime             = time(NULL);
 	while (!verified) {
 		// if the timeout is set and expired
 		if (sms_timeout > 0 && (time(NULL) - startTime) >= sms_timeout) {
@@ -133,11 +145,18 @@ PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc, const c
 			return PAM_ACCT_EXPIRED;
 		}
 
-		// TODO
-		printf("asdf\n");
+		// if the read failed because there was nothing to read,
+		if (read(fd, line, LINE_MAX_LENGTH) > 0) {
+			int readId = atoi(line);
+			printf("%d\n", readId);
+		}
 
 		sleep(1);
 	}
+
+	// close and remove the FIFO
+	close(fd);
+	remove(filename);
 
 	return PAM_SUCCESS;
 }

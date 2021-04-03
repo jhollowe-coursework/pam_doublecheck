@@ -8,23 +8,22 @@ int main(int argc, char **argv) {
 	int sessionId = atoi(argv[1]);
 	int userUuid  = atoi(argv[2]);
 
-	int fd;
-	if ((fd = open(DC_COMMUNICATION_FILE, O_WRONLY | O_APPEND)) < 0) {
+	int  fd;
+	char filename[GENERIC_STRING_MAX_LENGTH];
+	sprintf(filename, "%s_%0*d", DC_COMMUNICATION_FILE_BASE, DC_ID_PAD_LENGTH, sessionId);
+
+	if ((fd = open(filename, O_WRONLY | O_APPEND)) < 0) {
 		fprintf(stderr, DC_ERROR_MESSAGE);
 		exit(1);
 	}
 
 	char line[LINE_MAX_LENGTH];
-	sprintf(line, "%d %d\n", sessionId, userUuid);
-
-	// keep trying to get the lock if this distro does not support blocking flock()
-	while (flock(fd, LOCK_EX))
-		;
+	sprintf(line, "%d\n", userUuid);
 
 	if (write(fd, line, strlen(line)) < 0) {
 		fprintf(stderr, DC_ERROR_MESSAGE);
 	}
-	flock(fd, LOCK_UN);
+
 	close(fd);
 
 	return 0;

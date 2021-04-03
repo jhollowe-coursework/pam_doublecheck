@@ -1,5 +1,6 @@
 #include "secrets.h"
 #include "twilio.h"
+#include <errno.h>
 #include <grp.h>
 #include <pwd.h>
 #include <security/pam_appl.h>
@@ -8,6 +9,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/file.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
@@ -29,6 +32,8 @@
 #define DC_REGEX_SMS              "sms="
 #define DC_ID_MIN                 100
 #define DC_ID_MAX                 999
+#define DC_ID_PAD_LENGTH          3
+#define LINE_MAX_LENGTH           10
 #define USERNAME_MAX_LENGTH       32
 #define GECOS_MAX_LENGTH          256
 #define HOSTNAME_MAX_LENGTH       256
@@ -38,8 +43,7 @@
 
 #define DC_VERIFIER_GROUP_DEFAULT    "sudo"
 #define DC_BYPASS_GROUP_DEFAULT      "sudo"
-#define SMS_RESPONSE_TIMEOUT_DEFAULT 120
-#define DC_COMMUNICATION_FILE        "/tmp/dc_verify"
+#define DC_COMMUNICATION_FILE_BASE   "/tmp/dc_verify"
 #define DC_ENABLE_TEXTS              0
 
 static int converse(pam_handle_t *pamh, int nargs, PAM_CONST struct pam_message **message,
