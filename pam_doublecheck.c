@@ -19,6 +19,9 @@ PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc, const c
 	struct group * grp       = NULL;
 	int            sessionId = (rand() % (1 + DC_ID_MAX - DC_ID_MIN)) + DC_ID_MIN;
 
+	// DEBUG
+	// flags |= PAM_SILENT;
+
 	parseArgs(pamh, argc, argv);
 
 	// get the username of the user we are checking
@@ -31,7 +34,7 @@ PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc, const c
 	gid_t *groups  = malloc(ngroups * sizeof(gid_t *));
 	pw             = getpwnam(pUsername);
 	if (pw == NULL) {
-		fprintf(stderr, "Unable to find %s in user database\n", pUsername);
+		p_fprintf(flags, stderr, "Unable to find %s in user database\n", pUsername);
 		return PAM_USER_UNKNOWN;
 	}
 	// get the number of groups this user is into ngroups, resize groups, and get groups
@@ -41,7 +44,6 @@ PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc, const c
 	// get group names from group ID and check for bypass
 	for (int i = 0; i < ngroups; i++) {
 		grp = getgrgid(groups[i]);
-		printf("%s(%d)\n", grp->gr_name, groups[i]); // DEBUG
 		if (grp != NULL && !strcmp(grp->gr_name, bypass_group)) {
 			return PAM_SUCCESS;
 		}
@@ -56,11 +58,13 @@ PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc, const c
 	};
 	struct pam_response *resp = NULL;
 
-	// get reason for session from user
-	validateRetVal(converseSingle(pamh, &msg, &resp));
+	// get reason for session from user if allowed
 	char *reason = "";
-	if (resp != NULL && resp->resp != NULL && *resp->resp != '\000') {
-		reason = resp->resp;
+	if (!isSilent(flags)) {
+		validateRetVal(converseSingle(pamh, &msg, &resp));
+		if (resp != NULL && resp->resp != NULL && *resp->resp != '\000') {
+			reason = resp->resp;
+		}
 	}
 
 	int    numVerifiers         = 0;
@@ -71,13 +75,12 @@ PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc, const c
 	grp = getgrnam(verifier_group);
 	if (grp == NULL) {
 		// TODO use some logging tools
-		fprintf(stderr, "Unable to find users to verify access\n");
+		p_fprintf(flags, stderr, "Unable to find users to verify access\n");
 		return PAM_AUTH_ERR;
 	}
 	char **members = grp->gr_mem;
 	while (members != NULL && *members != NULL) {
 		numVerifiers++;
-		printf("%s is in %s\n", *members, verifier_group); // DEBUG
 
 		// get usernames
 		verifierUsernames = realloc(verifierUsernames, numVerifiers * sizeof(char *));
@@ -115,7 +118,7 @@ PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc, const c
 		twilio_send_message(DC_TWILIO_SID, DC_TWILIO_AUTH, message, DC_TWILIO_FROM, verifierPhoneNumbers[i], NULL,
 		                    DC_TWILIO_VERBOSE);
 #else
-		printf("Text to %s:\n\"%s\"\n\n", verifierPhoneNumbers[i], message);
+		p_printf(flags, "Text to %s:\n\"%s\"\n\n", verifierPhoneNumbers[i], message);
 #endif
 	}
 

@@ -4,6 +4,7 @@
 #include <pwd.h>
 #include <security/pam_appl.h>
 #include <security/pam_modules.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -19,6 +20,8 @@
 #define validateRetVal(retval) \
 	if (retval != PAM_SUCCESS)   \
 	return retval
+
+#define isSilent(flags) !!(flags & PAM_SILENT)
 
 #define DC_PREFIX                 "[Doublecheck] "
 #define DC_REASON_PROMPT          DC_PREFIX "Reason: "
@@ -44,3 +47,31 @@ static int converse(pam_handle_t *pamh, int nargs, PAM_CONST struct pam_message 
 static int converseSingle(pam_handle_t *pamh, PAM_CONST struct pam_message *message, struct pam_response **response);
 
 static int parseArgs(pam_handle_t *pamh, int argc, const char **argv);
+
+/*
+ * Takes the PAM flags int and only prints if the PAM_SILENT flag is not set
+ */
+void p_printf(int flags, const char *restrict format, ...) {
+	if (!isSilent(flags)) {
+		va_list arg;
+		int     done;
+		va_start(arg, format);
+		done = vprintf(format, arg);
+		va_end(arg);
+		return done;
+	}
+}
+
+/*
+ * Takes the PAM flags int and only prints if the PAM_SILENT flag is not set
+ */
+void p_fprintf(int flags, FILE *restrict stream, const char *restrict format, ...) {
+	if (!isSilent(flags)) {
+		va_list arg;
+		int     done;
+		va_start(arg, format);
+		done = vfprintf(stream, format, arg);
+		va_end(arg);
+		return done;
+	}
+}
