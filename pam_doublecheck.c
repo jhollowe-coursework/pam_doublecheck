@@ -18,6 +18,7 @@ PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc, const c
 	struct passwd *pw        = NULL;
 	struct group * grp       = NULL;
 	int            sessionId = (rand() % (1 + DC_ID_MAX - DC_ID_MIN)) + DC_ID_MIN;
+	bool           verified  = false;
 
 	// DEBUG
 	// flags |= PAM_SILENT;
@@ -120,6 +121,22 @@ PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc, const c
 #else
 		p_printf(flags, "Text to %s:\n\"%s\"\n\n", verifierPhoneNumbers[i], message);
 #endif
+	}
+
+	/* wait for verification */
+
+	time_t startTime = time(NULL);
+	while (!verified) {
+		// if the timeout is set and expired
+		if (sms_timeout > 0 && (time(NULL) - startTime) >= sms_timeout) {
+			p_printf(flags, "Verification exceeded max allowed time\n");
+			return PAM_ACCT_EXPIRED;
+		}
+
+		// TODO
+		printf("asdf\n");
+
+		sleep(1);
 	}
 
 	return PAM_SUCCESS;
