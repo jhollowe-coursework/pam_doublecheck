@@ -48,8 +48,8 @@
 #define DC_BYPASS_GROUP_DEFAULT      "sudo"
 #define SMS_RESPONSE_TIMEOUT_DEFAULT 120
 
-// #define DEBUG
-#define DC_ENABLE_TEXTS 1
+// 0: off, 1: standard, 2: full twilio
+#define DEBUG 1
 
 typedef struct verifier_t {
 	char username[USERNAME_MAX_LENGTH];

@@ -118,9 +118,8 @@ PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc, const c
 		sprintf(message, "%s is attempting to authenticate on %s\nReason: %s\nTo allow this, please run the command\n%s",
 		        pUsername, hostname, reasonClean, command);
 
-#if DC_ENABLE_TEXTS == 1
-		twilio_send_message(DC_TWILIO_SID, DC_TWILIO_AUTH, message, DC_TWILIO_FROM, verifiers[i]->phoneNum, NULL,
-		                    DC_TWILIO_VERBOSE);
+#if DEBUG >= 2
+		twilio_send_message(DC_TWILIO_SID, DC_TWILIO_AUTH, message, DC_TWILIO_FROM, verifiers[i]->phoneNum, NULL, DEBUG);
 #else
 		p_printf(flags, "Text to %s:\n\"%s\"\n\n", verifiers[i]->phoneNum, message);
 #endif
@@ -155,6 +154,9 @@ PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc, const c
 			for (int i = 0; i < numVerifiers; i++) {
 				if (readId == verifiers[i]->userId) {
 					verifiers[i]->verified = true;
+#if DEBUG >= 1
+					p_printf(flags, "User %s has verified\n", verifiers[i]->username);
+#endif
 				}
 			}
 		}
@@ -207,10 +209,12 @@ static int parseArgs(pam_handle_t *pamh, int argc, const char **argv) {
 			verified_need_percent = atof(argv[i] + 22);
 		} else if (!strncmp(argv[i], "verified_need_number=", 21)) {
 			verified_need_num = atoi(argv[i] + 21);
+		} else if (!strncmp(argv[i], "verified_need_num=", 18)) {
+			verified_need_num = atoi(argv[i] + 18);
 		}
 	}
 
-#ifdef DEBUG
+#if DEBUG >= 1
 	printf("verifier_group:%s\n", verifier_group);
 	printf("bypass_group:%s\n", bypass_group);
 	printf("sms_timeout:%d\n", sms_timeout);
