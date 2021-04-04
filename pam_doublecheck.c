@@ -3,9 +3,11 @@
 #include "pam_doublecheck.h"
 
 // GLOBAL CONFIG
-char *verifier_group = DC_VERIFIER_GROUP_DEFAULT;
-char *bypass_group   = DC_BYPASS_GROUP_DEFAULT;
-int   sms_timeout    = SMS_RESPONSE_TIMEOUT_DEFAULT;
+char *verifier_group        = DC_VERIFIER_GROUP_DEFAULT;
+char *bypass_group          = DC_BYPASS_GROUP_DEFAULT;
+int   sms_timeout           = SMS_RESPONSE_TIMEOUT_DEFAULT;
+float verified_need_percent = DC_VERIFIED_NEED_PERCENT;
+int   verified_need_num     = DC_VERIFIED_NEED_NUM;
 
 /* PAM hook: allows modifying the user's credentials */
 PAM_EXTERN int pam_sm_setcred(pam_handle_t *pamh, int flags, int argc, const char **argv) {
@@ -68,9 +70,8 @@ PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc, const c
 		}
 	}
 
-	int    numVerifiers         = 0;
-	char **verifierUsernames    = malloc(sizeof(char *));
-	char **verifierPhoneNumbers = malloc(sizeof(char *));
+	int          numVerifiers = 0;
+	verifier_t **verifiers    = malloc(sizeof(verifier_t *));
 
 	// get users in verifier group
 	grp = getgrnam(verifier_group);
@@ -83,19 +84,22 @@ PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc, const c
 	while (members != NULL && *members != NULL) {
 		numVerifiers++;
 
-		// get usernames
-		verifierUsernames = realloc(verifierUsernames, numVerifiers * sizeof(char *));
-		char *username    = malloc(sizeof(char) * USERNAME_MAX_LENGTH);
-		strncpy(username, *members, USERNAME_MAX_LENGTH);
-		verifierUsernames[numVerifiers - 1] = username;
+		// create a new verifier, expand array, and add
+		verifiers                   = realloc(verifiers, numVerifiers * sizeof(verifier_t *));
+		verifier_t *verifier        = malloc(sizeof(verifier_t));
+		verifiers[numVerifiers - 1] = verifier;
 
-		// get phone numbers
-		verifierPhoneNumbers = realloc(verifierPhoneNumbers, numVerifiers * sizeof(char *));
-		pw                   = getpwnam(username);
-		char *gecos          = malloc(sizeof(char) * GECOS_MAX_LENGTH);
+		// store username
+		strncpy(verifier->username, *members, USERNAME_MAX_LENGTH);
+
+		// store phone numbers
+		pw = getpwnam(verifier->username);
 		// TODO don't assume the only thing in a user's GECOS is a phone number
-		strncpy(gecos, pw->pw_gecos, GECOS_MAX_LENGTH);
-		verifierPhoneNumbers[numVerifiers - 1] = gecos;
+		strncpy(verifier->phoneNum, pw->pw_gecos, GECOS_MAX_LENGTH);
+
+		// store userId
+		verifier->userId   = (rand() % (1 + DC_ID_MAX - DC_ID_MIN)) + DC_ID_MIN;
+		verifier->verified = false;
 
 		members++;
 	}
@@ -107,19 +111,18 @@ PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc, const c
 	char command[GENERIC_STRING_MAX_LENGTH];
 	char message[MESSAGE_BASE_LENGTH + strlen(reason)];
 	for (int i = 0; i < numVerifiers; i++) {
-		int userUuid = (rand() % (1 + DC_ID_MAX - DC_ID_MIN)) + DC_ID_MIN;
 
 		char *reasonClean = !strncmp(reason, "", 1) ? "<no reason given>" : reason;
 
-		sprintf(command, "ssh %s@%s doublecheck %d %d", verifierUsernames[i], hostname, sessionId, userUuid);
+		sprintf(command, "ssh %s@%s doublecheck %d %d", verifiers[i]->username, hostname, sessionId, verifiers[i]->userId);
 		sprintf(message, "%s is attempting to authenticate on %s\nReason: %s\nTo allow this, please run the command\n%s",
 		        pUsername, hostname, reasonClean, command);
 
 #if DC_ENABLE_TEXTS == 1
-		twilio_send_message(DC_TWILIO_SID, DC_TWILIO_AUTH, message, DC_TWILIO_FROM, verifierPhoneNumbers[i], NULL,
+		twilio_send_message(DC_TWILIO_SID, DC_TWILIO_AUTH, message, DC_TWILIO_FROM, verifiers[i]->phoneNum, NULL,
 		                    DC_TWILIO_VERBOSE);
 #else
-		p_printf(flags, "Text to %s:\n\"%s\"\n\n", verifierPhoneNumbers[i], message);
+		p_printf(flags, "Text to %s:\n\"%s\"\n\n", verifiers[i]->phoneNum, message);
 #endif
 	}
 
@@ -142,17 +145,35 @@ PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc, const c
 		// if the timeout is set and expired
 		if (sms_timeout > 0 && (time(NULL) - startTime) >= sms_timeout) {
 			p_printf(flags, "Verification exceeded max allowed time\n");
-			return PAM_ACCT_EXPIRED;
+			return PAM_PERM_DENIED;
 		}
 
-		// if the read failed because there was nothing to read,
+		// if something was read
 		if (read(fd, line, LINE_MAX_LENGTH) > 0) {
 			int readId = atoi(line);
-			printf("%d\n", readId);
+
+			for (int i = 0; i < numVerifiers; i++) {
+				if (readId == verifiers[i]->userId) {
+					verifiers[i]->verified = true;
+				}
+			}
 		}
 
-		sleep(1);
+		int numVerified = 0;
+		for (int i = 0; i < numVerifiers; i++) {
+			if (verifiers[i]->verified) {
+				numVerified++;
+			}
+		}
+
+		float percentVerified = numVerified / (float)numVerifiers;
+		if (percentVerified >= verified_need_percent && numVerified >= verified_need_num) {
+			verified = true;
+		}
+
+		sleep(verified ? 0 : 1);
 	}
+	// if the loop is existed, the user is verified
 
 	// close and remove the FIFO
 	close(fd);
@@ -177,12 +198,24 @@ static int converseSingle(pam_handle_t *pamh, PAM_CONST struct pam_message *mess
 static int parseArgs(pam_handle_t *pamh, int argc, const char **argv) {
 	for (int i = 0; i < argc; ++i) {
 		if (!strncmp(argv[i], "verifier_group=", 15)) {
-			verifier_group = argv[i];
-		} else if (!strncmp(argv[i], "sms_timeout=", 13)) {
-			sms_timeout = atoi(argv[i]);
-		} else if (!strncmp(argv[i], "bypass_group=", 14)) {
-			bypass_group = argv[i];
+			verifier_group = argv[i] + 15;
+		} else if (!strncmp(argv[i], "bypass_group=", 13)) {
+			bypass_group = argv[i] + 13;
+		} else if (!strncmp(argv[i], "sms_timeout=", 12)) {
+			sms_timeout = atoi(argv[i] + 12);
+		} else if (!strncmp(argv[i], "verified_need_percent=", 22)) {
+			verified_need_percent = atof(argv[i] + 22);
+		} else if (!strncmp(argv[i], "verified_need_number=", 21)) {
+			verified_need_num = atoi(argv[i] + 21);
 		}
 	}
+
+#ifdef DEBUG
+	printf("verifier_group:%s\n", verifier_group);
+	printf("bypass_group:%s\n", bypass_group);
+	printf("sms_timeout:%d\n", sms_timeout);
+	printf("verified_need_percent:%f\n", verified_need_percent);
+	printf("verified_need_num:%d\n", verified_need_num);
+#endif
 	return 0;
 }

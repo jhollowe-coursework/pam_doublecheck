@@ -32,7 +32,7 @@ export_pam: compile_pam
 	sudo chown root:root $(PAM_EXPORT_PATH)/$(PAM_BIN).so
 	sudo chmod 644 $(PAM_EXPORT_PATH)/$(PAM_BIN).so
 
-test_pam: exports
+test_pam: export_pam
 	pam_test auth vscode
 
 test: test_bin

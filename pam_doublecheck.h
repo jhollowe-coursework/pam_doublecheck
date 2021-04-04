@@ -27,24 +27,36 @@
 
 #define isSilent(flags) !!(flags & PAM_SILENT)
 
-#define DC_PREFIX                 "[Doublecheck] "
-#define DC_REASON_PROMPT          DC_PREFIX "Reason: "
-#define DC_REGEX_SMS              "sms="
-#define DC_ID_MIN                 100
-#define DC_ID_MAX                 999
-#define DC_ID_PAD_LENGTH          3
-#define LINE_MAX_LENGTH           10
-#define USERNAME_MAX_LENGTH       32
-#define GECOS_MAX_LENGTH          256
-#define HOSTNAME_MAX_LENGTH       256
-#define COMMAND_MAX_LENGTH        18 + 8 + USERNAME_MAX_LENGTH + HOSTNAME_MAX_LENGTH
-#define MESSAGE_BASE_LENGTH       90 + USERNAME_MAX_LENGTH + HOSTNAME_MAX_LENGTH + COMMAND_MAX_LENGTH // + strlen(reason)
-#define GENERIC_STRING_MAX_LENGTH 1000
+#define DC_COMMUNICATION_FILE_BASE "/tmp/dc_verify"
+#define DC_PREFIX                  "[Doublecheck] "
+#define DC_REASON_PROMPT           DC_PREFIX "Reason: "
+#define DC_REGEX_SMS               "sms="
+#define DC_ID_MIN                  100
+#define DC_ID_MAX                  999
+#define DC_ID_PAD_LENGTH           3
+#define LINE_MAX_LENGTH            10
+#define USERNAME_MAX_LENGTH        32
+#define GECOS_MAX_LENGTH           256
+#define HOSTNAME_MAX_LENGTH        256
+#define COMMAND_MAX_LENGTH         18 + 8 + USERNAME_MAX_LENGTH + HOSTNAME_MAX_LENGTH
+#define MESSAGE_BASE_LENGTH        90 + USERNAME_MAX_LENGTH + HOSTNAME_MAX_LENGTH + COMMAND_MAX_LENGTH // + strlen(reason)
+#define GENERIC_STRING_MAX_LENGTH  1000
 
+#define DC_VERIFIED_NEED_NUM         1
+#define DC_VERIFIED_NEED_PERCENT     0.000001
 #define DC_VERIFIER_GROUP_DEFAULT    "sudo"
 #define DC_BYPASS_GROUP_DEFAULT      "sudo"
-#define DC_COMMUNICATION_FILE_BASE   "/tmp/dc_verify"
-#define DC_ENABLE_TEXTS              0
+#define SMS_RESPONSE_TIMEOUT_DEFAULT 120
+
+// #define DEBUG
+#define DC_ENABLE_TEXTS 1
+
+typedef struct verifier_t {
+	char username[USERNAME_MAX_LENGTH];
+	char phoneNum[GECOS_MAX_LENGTH];
+	int  userId;
+	bool verified;
+} verifier_t;
 
 static int converse(pam_handle_t *pamh, int nargs, PAM_CONST struct pam_message **message,
                     struct pam_response **response);
