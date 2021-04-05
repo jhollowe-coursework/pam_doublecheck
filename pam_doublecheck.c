@@ -17,6 +17,9 @@ PAM_EXTERN int pam_sm_setcred(pam_handle_t *pamh, int flags, int argc, const cha
 
 /* PAM hook: determine if this account can be used at the moment. The main action of this module */
 PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc, const char **argv) {
+	// set seed for rand() to current timestamp
+	srand(time(NULL));
+
 	struct passwd *pw        = NULL;
 	struct group * grp       = NULL;
 	int            sessionId = (rand() % (1 + DC_ID_MAX - DC_ID_MIN)) + DC_ID_MIN;
@@ -118,8 +121,9 @@ PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc, const c
 		sprintf(message, "%s is attempting to authenticate on %s\nReason: %s\nTo allow this, please run the command\n%s",
 		        pUsername, hostname, reasonClean, command);
 
-#if DEBUG >= 2
-		twilio_send_message(DC_TWILIO_SID, DC_TWILIO_AUTH, message, DC_TWILIO_FROM, verifiers[i]->phoneNum, NULL, DEBUG);
+#if DC_ENABLE_TEXTS == 1
+		twilio_send_message(DC_TWILIO_SID, DC_TWILIO_AUTH, message, DC_TWILIO_FROM, verifiers[i]->phoneNum, NULL,
+		                    DEBUG >= 2);
 #else
 		p_printf(flags, "Text to %s:\n\"%s\"\n\n", verifiers[i]->phoneNum, message);
 #endif
