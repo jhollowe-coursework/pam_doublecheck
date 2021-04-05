@@ -204,9 +204,9 @@ static int converseSingle(pam_handle_t *pamh, PAM_CONST struct pam_message *mess
 static int parseArgs(pam_handle_t *pamh, int argc, const char **argv) {
 	for (int i = 0; i < argc; ++i) {
 		if (!strncmp(argv[i], "verifier_group=", 15)) {
-			verifier_group = argv[i] + 15;
+			verifier_group = (char *)(argv[i] + 15);
 		} else if (!strncmp(argv[i], "bypass_group=", 13)) {
-			bypass_group = argv[i] + 13;
+			bypass_group = (char *)(argv[i] + 13);
 		} else if (!strncmp(argv[i], "sms_timeout=", 12)) {
 			sms_timeout = atoi(argv[i] + 12);
 		} else if (!strncmp(argv[i], "verified_need_percent=", 22)) {
