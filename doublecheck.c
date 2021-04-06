@@ -26,5 +26,7 @@ int main(int argc, char **argv) {
 
 	close(fd);
 
+	printf("Verification successful\n");
+
 	return 0;
 }

@@ -50,6 +50,7 @@ PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc, const c
 	// get group names from group ID and check for bypass
 	for (int i = 0; i < ngroups; i++) {
 		grp = getgrgid(groups[i]);
+		// TODO allow a list of groups to bypass
 		if (grp != NULL && !strcmp(grp->gr_name, bypass_group)) {
 			return PAM_SUCCESS;
 		}
@@ -77,6 +78,7 @@ PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc, const c
 	verifier_t **verifiers    = malloc(sizeof(verifier_t *));
 
 	// get users in verifier group
+	// TODO allow a list of groups for verifiers
 	grp = getgrnam(verifier_group);
 	if (grp == NULL) {
 		// TODO use some logging tools
