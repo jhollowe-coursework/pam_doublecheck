@@ -42,14 +42,14 @@
 #define MESSAGE_BASE_LENGTH        90 + USERNAME_MAX_LENGTH + HOSTNAME_MAX_LENGTH + COMMAND_MAX_LENGTH // + strlen(reason)
 #define GENERIC_STRING_MAX_LENGTH  1000
 
-#define DC_VERIFIED_NEED_NUM         1
-#define DC_VERIFIED_NEED_PERCENT     0.000001
-#define DC_VERIFIER_GROUP_DEFAULT    "sudo"
-#define DC_BYPASS_GROUP_DEFAULT      "sudo"
-#define SMS_RESPONSE_TIMEOUT_DEFAULT 120
+#define DC_VERIFIED_NEED_NUM      1
+#define DC_VERIFIED_NEED_PERCENT  0.000001
+#define DC_VERIFIER_GROUP_DEFAULT "sudo"
+#define DC_BYPASS_GROUP_DEFAULT   "sudo"
+#define RESPONSE_TIMEOUT_DEFAULT  120
 
 // 0: off, 1: standard, 2: full Twilio
-#define DEBUG           2
+#define DEBUG           0
 #define DC_ENABLE_TEXTS 1
 
 typedef struct verifier_t {

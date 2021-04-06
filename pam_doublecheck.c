@@ -5,9 +5,9 @@
 // GLOBAL CONFIG
 char *verifier_group        = DC_VERIFIER_GROUP_DEFAULT;
 char *bypass_group          = DC_BYPASS_GROUP_DEFAULT;
-int   sms_timeout           = SMS_RESPONSE_TIMEOUT_DEFAULT;
+int   timeout               = RESPONSE_TIMEOUT_DEFAULT;
 float verified_need_percent = DC_VERIFIED_NEED_PERCENT;
-int   verified_need_num     = DC_VERIFIED_NEED_NUM;
+int   verified_need_count   = DC_VERIFIED_NEED_NUM;
 
 /* PAM hook: allows modifying the user's credentials */
 PAM_EXTERN int pam_sm_setcred(pam_handle_t *pamh, int flags, int argc, const char **argv) {
@@ -146,7 +146,7 @@ PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc, const c
 	time_t startTime             = time(NULL);
 	while (!verified) {
 		// if the timeout is set and expired
-		if (sms_timeout > 0 && (time(NULL) - startTime) >= sms_timeout) {
+		if (timeout > 0 && (time(NULL) - startTime) >= timeout) {
 			p_printf(flags, "Verification exceeded max allowed time\n");
 			return PAM_PERM_DENIED;
 		}
@@ -173,7 +173,7 @@ PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc, const c
 		}
 
 		float percentVerified = numVerified / (float)numVerifiers;
-		if (percentVerified >= verified_need_percent && numVerified >= verified_need_num) {
+		if (percentVerified >= verified_need_percent && numVerified >= verified_need_count) {
 			verified = true;
 		}
 
@@ -207,23 +207,21 @@ static int parseArgs(pam_handle_t *pamh, int argc, const char **argv) {
 			verifier_group = (char *)(argv[i] + 15);
 		} else if (!strncmp(argv[i], "bypass_group=", 13)) {
 			bypass_group = (char *)(argv[i] + 13);
-		} else if (!strncmp(argv[i], "sms_timeout=", 12)) {
-			sms_timeout = atoi(argv[i] + 12);
+		} else if (!strncmp(argv[i], "timeout=", 8)) {
+			timeout = atoi(argv[i] + 8);
 		} else if (!strncmp(argv[i], "verified_need_percent=", 22)) {
 			verified_need_percent = atof(argv[i] + 22);
-		} else if (!strncmp(argv[i], "verified_need_number=", 21)) {
-			verified_need_num = atoi(argv[i] + 21);
-		} else if (!strncmp(argv[i], "verified_need_num=", 18)) {
-			verified_need_num = atoi(argv[i] + 18);
+		} else if (!strncmp(argv[i], "verified_need_count=", 20)) {
+			verified_need_count = atoi(argv[i] + 20);
 		}
 	}
 
 #if DEBUG >= 1
 	printf("verifier_group:%s\n", verifier_group);
 	printf("bypass_group:%s\n", bypass_group);
-	printf("sms_timeout:%d\n", sms_timeout);
+	printf("timeout:%d\n", timeout);
 	printf("verified_need_percent:%f\n", verified_need_percent);
-	printf("verified_need_num:%d\n", verified_need_num);
+	printf("verified_need_count:%d\n", verified_need_count);
 #endif
 	return 0;
 }

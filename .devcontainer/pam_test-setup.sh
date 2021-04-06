@@ -15,3 +15,6 @@ sudo useradd -G sudo -c "+18032666559" test1
 sudo useradd test2
 sudo useradd test3
 sudo useradd -G sudo -c "+1 423-218-9620" test4
+
+echo "add root to sudo group (for bypass)"
+sudo usermod -aG sudo root
