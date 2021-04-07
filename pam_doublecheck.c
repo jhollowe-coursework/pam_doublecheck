@@ -137,7 +137,8 @@ PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc, const c
 	char filename[GENERIC_STRING_MAX_LENGTH];
 	sprintf(filename, "%s_%0*d", DC_COMMUNICATION_FILE_BASE, DC_ID_PAD_LENGTH, sessionId);
 
-	mkfifo(filename, 0666);
+	// TODO fix this being create with incorrect permissions
+	mkfifo(filename, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 
 	if ((fd = open(filename, O_RDONLY | O_NONBLOCK)) < 0) {
 		p_fprintf(flags, stderr, "Unable to access verifier log");
@@ -150,6 +151,11 @@ PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc, const c
 		// if the timeout is set and expired
 		if (timeout > 0 && (time(NULL) - startTime) >= timeout) {
 			p_printf(flags, "Verification exceeded max allowed time\n");
+
+			// close and remove the FIFO
+			close(fd);
+			remove(filename);
+
 			return PAM_PERM_DENIED;
 		}
 
