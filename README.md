@@ -7,7 +7,7 @@ A linux PAM module to require approval for logons
 
 Before the programs can be compiled, Twilio access credentials are needed to allow sending SMS messages.
 
-Got to https://www.twilio.com/, click "Sign Up" and create an account. Then go to https://www.twilio.com/console/projects/create and create a project. You can choose any answer for the survey.
+Go to https://www.twilio.com/, click "Sign Up" and create an account. Then go to https://www.twilio.com/console/projects/create and create a project. You can choose any answer for the survey.
 
 Once you have created a project, you will see your Account SID and Auth Token.  
 If you are just testing this project, you can click the "Get a trial phone number" button to get a trial number to send from.
